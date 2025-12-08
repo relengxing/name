@@ -405,6 +405,7 @@
     <script>
         // 名字库数据
         let chineseNamesLibrary = [];
+        let chineseNamesEnhanced = [];  // 增强版名字库
         let englishNamesLibrary = [];
         let isLibraryLoaded = false;
 
@@ -442,14 +443,26 @@
         // 加载名字库
         async function loadNameLibrary() {
             try {
-                // 加载中文名字库
+                // 加载原始中文名字库
                 const chineseResponse = await fetch('names/chinese_names.txt');
                 const chineseText = await chineseResponse.text();
                 chineseNamesLibrary = chineseText.split('\n')
                     .map(name => name.trim())
                     .filter(name => name.length > 0 && name.length <= 10);
                 
-                console.log(`✅ 已加载 ${chineseNamesLibrary.length} 个中文名字`);
+                console.log(`✅ 已加载原始中文名字库：${chineseNamesLibrary.length} 个名字`);
+                
+                // 加载增强版中文名字库
+                try {
+                    const enhancedResponse = await fetch('names/chinese_names_enhanced.txt');
+                    const enhancedText = await enhancedResponse.text();
+                    chineseNamesEnhanced = enhancedText.split('\n')
+                        .map(name => name.trim())
+                        .filter(name => name.length > 0 && name.length <= 10);
+                    console.log(`✅ 已加载增强版中文名字库：${chineseNamesEnhanced.length} 个名字`);
+                } catch (e) {
+                    console.log('⚠️ 增强版中文名字库加载失败，将只使用原始名字库');
+                }
                 
                 // 加载英文名字库
                 try {
@@ -495,12 +508,25 @@
             }
         }
 
-        // 生成中文名字 - 优先从名字库选择，确保多样性
+        // 生成中文名字 - 从两个库中各取50%
         function generateChineseName() {
             // 如果名字库已加载且有足够数据，从中随机选择
             if (isLibraryLoaded && chineseNamesLibrary.length > 0) {
-                const randomIndex = Math.floor(Math.random() * chineseNamesLibrary.length);
-                return chineseNamesLibrary[randomIndex];
+                // 50% 概率从原始库选择，50% 从增强库选择
+                if (chineseNamesEnhanced.length > 0) {
+                    // 两个库都有，随机选择
+                    if (Math.random() < 0.5) {
+                        const randomIndex = Math.floor(Math.random() * chineseNamesLibrary.length);
+                        return chineseNamesLibrary[randomIndex];
+                    } else {
+                        const randomIndex = Math.floor(Math.random() * chineseNamesEnhanced.length);
+                        return chineseNamesEnhanced[randomIndex];
+                    }
+                } else {
+                    // 只有原始库
+                    const randomIndex = Math.floor(Math.random() * chineseNamesLibrary.length);
+                    return chineseNamesLibrary[randomIndex];
+                }
             }
             
             // 备用方案：随机组合生成
@@ -682,11 +708,30 @@
             }
 
             // 如果从名字库选择且库很大，可以直接随机选择不重复的
-            if (locale === 'zh_CN' && isLibraryLoaded && chineseNamesLibrary.length > count * 2) {
-                names.clear();
-                const shuffled = [...chineseNamesLibrary].sort(() => Math.random() - 0.5);
-                for (let i = 0; i < Math.min(count, shuffled.length); i++) {
-                    names.add(shuffled[i]);
+            if (locale === 'zh_CN' && isLibraryLoaded) {
+                const totalAvailable = chineseNamesLibrary.length + (chineseNamesEnhanced.length || 0);
+                if (totalAvailable > count * 2) {
+                    names.clear();
+                    
+                    // 从两个库中各取一半
+                    const halfCount = Math.floor(count / 2);
+                    
+                    // 从原始库中选择
+                    if (chineseNamesLibrary.length > 0) {
+                        const shuffled1 = [...chineseNamesLibrary].sort(() => Math.random() - 0.5);
+                        for (let i = 0; i < Math.min(halfCount, shuffled1.length); i++) {
+                            names.add(shuffled1[i]);
+                        }
+                    }
+                    
+                    // 从增强库中选择
+                    if (chineseNamesEnhanced.length > 0) {
+                        const remaining = count - names.size;
+                        const shuffled2 = [...chineseNamesEnhanced].sort(() => Math.random() - 0.5);
+                        for (let i = 0; i < Math.min(remaining, shuffled2.length); i++) {
+                            names.add(shuffled2[i]);
+                        }
+                    }
                 }
             }
 
