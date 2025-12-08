@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Faker.js Test</title>
+    <script src="https://unpkg.com/@faker-js/faker@8.4.1/dist/umd/index.js"></script>
+</head>
+<body>
+    <h1>Faker.js Locale Test</h1>
+    <button onclick="testFaker()">Test Faker</button>
+    <pre id="output"></pre>
+    
+    <script>
+        function testFaker() {
+            const output = document.getElementById('output');
+            let result = '';
+            
+            try {
+                result += 'window.fakerJS type: ' + typeof window.fakerJS + '\n';
+                result += 'window.fakerJS keys: ' + Object.keys(window.fakerJS || {}).join(', ') + '\n\n';
+                
+                // 测试不同 locale
+                const locales = ['zh_CN', 'en', 'ja', 'ko', 'fr'];
+                
+                for (const locale of locales) {
+                    result += `\n=== ${locale} ===\n`;
+                    try {
+                        if (window.fakerJS[locale]) {
+                            const f = window.fakerJS[locale];
+                            result += 'Name: ' + f.person.fullName() + '\n';
+                        } else {
+                            result += 'Locale not found\n';
+                        }
+                    } catch (e) {
+                        result += 'Error: ' + e.message + '\n';
+                    }
+                }
+            } catch (e) {
+                result += 'Fatal error: ' + e.message;
+            }
+            
+            output.textContent = result;
+        }
+        
+        // 页面加载后自动测试
+        window.addEventListener('load', testFaker);
+    </script>
+</body>
+</html>
+
